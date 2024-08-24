@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 
 import connectDB from "./db/index.js";
 
+import { app } from "./app.js";
+
 
 // b. DB Connection code ni Seperate file lo resi danni endhiloki inport chesi code ni exicute cheyyadam ;
 
@@ -18,15 +20,14 @@ dotenv.config({
 
 connectDB()
 .then(() => {
+  app.listen(process.env.PORT || 8000, () => {
+    console.log(`⚙️ ⚙️ ⚙️ Server is running at port : ${process.env.PORT}`);
+  })
 
   // app.on("error", (error) => {
   //   console.log("ERROR: ", error);
   //   throw error
   // })
-  
-  app.listen(process.env.PORT || 8000), () => {
-    console.log(`⚙️ ⚙️ ⚙️ Server is running at port : ${process.env.PORT}`);
-  }
 
 })
 .catch((error) => {
