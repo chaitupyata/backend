@@ -22,7 +22,9 @@ cloudinary.config({
 });
 
 
-// STEP 2 
+
+// STEP 1 => File ni Cloudinary loki uplode cheyyali 
+
 
 // oka method ni create chesi  e method lo parameter lekka e LOCALFILE path ni isthvu danni nenu Uplode chestha 
 
@@ -41,12 +43,16 @@ const uploadeOnCloudinary = async (localFilePath) => {
 
     // file has been uploded successfull 
 
-    console.log("FILE IS UPLODED ON CLOUDINARY "),
-    response.url();
+    console.log("FILE IS UPLODED ON CLOUDINARY ", response.url());
+    
 
     return response;
 
   } catch (error) {
+
+
+  // STEP 2 => Cloudinary loki file uplode ayyinaka SERVER lo vunna File ni delete cheyyali 
+
 
     // removes the locally saved temporary file as the uplode operation got failed
     
