@@ -4,6 +4,43 @@ import {User} from "../models/user.models.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+
+
+// STEP 5 :=  ACCESS & REFRESH TOKEN  METHOD
+
+const generateAccessAndRefreshTokens = async(userId) => {
+  try {
+
+  // Find the User 
+      const user =  await User.findById(userId);
+
+      const accessToken = user.generateAccessToken();
+      const refreshToken = user.generateRefreshToken();
+
+// ACCESSTOKEN is send to user , but REFRESHTOKEN is Stored in DATABASE 
+
+
+// STORING the Refresh Token in DATABASE
+
+
+    user.refreshToken = refreshToken
+
+// SAVE in database :=
+
+    await user.save({validateBeforeSave : false})
+
+
+// Returning the ACCESS & REFRESH TOKEN 
+
+
+    return { accessToken, refreshToken }
+
+  } catch (error) {
+    throw new ApiError(500, "Something went wrong while generating Refresh & Access Token")
+  }
+}
+
+
 const registerUser = asyncHandler( async (req, res) => {
   // get user details from frontend
   // validation - not empty
@@ -134,4 +171,141 @@ const registerUser = asyncHandler( async (req, res) => {
 } )
 
 
-export {registerUser}
+// LOGIN USER **********
+
+    const loginUser = asyncHandler(async (req, res) => {
+
+      // STEP 1 := req body -> data
+
+      // STEP 2 := username  or email is prasent or not 
+
+      // STEP 3 := FIND the User
+
+      // STEP 4 := Password check
+
+      // STEP 5 :=  ACCESS & REFRESH TOKEN 
+
+      // STEP 6 := send cookie 
+
+// STEP 1 := req body -> data
+
+    const { email, username, password } = req.body
+
+    if (!username || !email) {
+      throw new ApiError(400, "username or email is required !!!!!!")
+    }
+
+// STEP 2 := username  or email is prasent or not 
+
+    const user = await User.findOne({
+      $or: [{ username }, { email }]
+    })
+
+// STEP 3 := FIND the User
+
+    if (!user) {
+      throw new ApiError(404, "User does not exist......")
+
+    }
+
+// STEP 4 := Password check
+
+
+    const isPasswordValid =  await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+      throw new ApiError(401, "Password inCorrect...... ")
+    }
+
+// STEP 5 :=  ACCESS & REFRESH TOKEN 
+
+
+    const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    // BEACUSE ACCESS & REFRESH TOKEN is called mutliple times then it commenly creates a METHOD from them 
+
+
+// STEP 6 := send cookie 
+
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+
+    const options = {
+      httpOnly: true,
+      secure: true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser, accessToken, refreshToken
+        },
+        "User Logged in Successfully"
+
+      )
+    )
+})
+
+
+// LOGOUT USER ::::::::=================
+
+
+    const logoutUser = asyncHandler(async(req, res) => {
+
+      //  STEP 1 := Find the User 
+      
+      //  STEP 2 :=  Cleare the Cookies of user 
+
+      //  STEP 3 := Reset the REFRESH TOKEN 
+
+      
+//  STEP 1 := Find the User 
+  
+
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          $set: {
+            refreshToken: undefined
+          }
+        },
+        {
+          new: true
+        }
+      )
+
+      const options = {
+        httpOnly: true,
+        secure: true
+      }
+
+//  STEP 2 :=  Cleare the Cookies of user 
+
+      return res 
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiError(200, {}, "User logged Out SuccessFully"))
+
+    })
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser
+
+}
+
+
+
+
+
+
+
+
