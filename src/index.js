@@ -15,7 +15,7 @@ import { app } from "./app.js";
 // **  final ga "mongoose.connect()" ** 
 
 dotenv.config({
-  path: './env'
+  path: './.env'
 })
 
 connectDB()

@@ -1,86 +1,47 @@
-
-
-// File anevi File System through vacchinaye  Server lo Uplode ayyinaye 
-
-// Evaraithe e Service Ni use chestharo LOCAL FILE path ni estharu ante avi Server loki poinaye
-
-// ante SERVER loki ayyithe File vacchindhi SERVER nuchi naku Local path isthavu nenu File ni CLOUDINARY loki uplode chestha 
-
-// STEP 1 => File ni Cloudinary loki uplode cheyyali 
-
-// STEP 2 => Cloudinary loki file uplode ayyinaka SERVER lo vunna File ni delete cheyyali 
-
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
-
+import {v2 as cloudinary} from "cloudinary"
+import fs from "fs"
 
 
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
   api_key: process.env.CLOUDINARY_APY_KEY, 
-  api_secret: process.env.CLOUDINARY_APY_SECRET
+  api_secret: process.env.CLOUDINARY_APY_SECRET 
 });
 
+const uploadOnCloudinary = async (localFilePath) => {
+    try {
+        if (!localFilePath) return null;
+        //upload the file on cloudinary
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto"
+        })
+        // file has been uploaded successfull
+        // console.log("file is uploaded on cloudinary ", response.url);
+        fs.unlinkSync(localFilePath)
+
+        // console.log("RESPONSE::::::: ", response);
+        
+        return response;
 
 
-// STEP 1 => File ni Cloudinary loki uplode cheyyali 
 
+    } catch (error) {
 
-// oka method ni create chesi  e method lo parameter lekka e LOCALFILE path ni isthvu danni nenu Uplode chestha 
+        console.log("Cloudinary UPLODE ERROR: ", error );
+        
+        // fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed
 
-
-// A FILE succesfully uplode ayyaka a file ni UNLINK chestha 
-
-const uploadeOnCloudinary = async (localFilePath) => {
-  try {
-    if (!localFilePath)  return null 
-
-    // UPLODE the file on Cloudinary 
-
-    const response =  await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto"
-    })
-
-    // file has been uploded successfull 
-
-    console.log("FILE IS UPLODED ON CLOUDINARY ", response.url());
+        try {
+          fs.unlinkSync(localFilePath); // Remove the locally saved temporary file
+          console.log("Local file deleted:", localFilePath);
+        } catch (fsError) {
+          console.error("Error deleting local file:", fsError);
+        }
     
-
-    return response;
-
-  } catch (error) {
-
-
-  // STEP 2 => Cloudinary loki file uplode ayyinaka SERVER lo vunna File ni delete cheyyali 
-
-
-    // removes the locally saved temporary file as the uplode operation got failed
-    
-    fs.unlinkSync(localFilePath) 
-    return null;
-  }
+        return null;
+    }
 }
 
 
-export { uploadeOnCloudinary }
 
-
-// NOTE console.log(response) to know what is comming
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export {uploadOnCloudinary}
