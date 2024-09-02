@@ -300,7 +300,8 @@ const registerUser = asyncHandler( async (req, res) => {
 
 // REFRESH ACCESS TOKEN ENDPOINT *******************
 
-try {
+
+  
   const refreshAccessToken = asyncHandler(async (req, res) => {
   
     // edhi ela refresh avuthundhi Refresh Token NI Pampale
@@ -314,7 +315,8 @@ try {
     }
   
   // Verifying the Tokens ( using jwt )
-    
+  try {
+
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRETE
@@ -351,15 +353,192 @@ try {
       )
     )
 
-  })
 } catch (error) {
   throw new ApiError(401, error?.message || "Invalid Refresh Token .........") 
 }
 
+})
+
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+
+  // User nuchi Current Password ni change cheyyali 
+
+  // ->  User already login a kadha Cookies vunnaya leva ani manam Route ni create chesthunnapdu akkada check chestha Middleware dwara
+
+  // Current Password ni change chesthunnappudu User nuchi em em values tesukutavu anedhi mana istam 
+
+  const {oldPassword, newPassword} = req.body
+
+
+
+  // step1: Find the old User 
+
+  const user = await User.findById(req.user?._id)
+
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid old password... ")
+
+  }
+
+  // Old password is correct and set the new Password
+
+  user.password = newPassword
+
+  // password ni set chesinavu kani save cheyyaledhu ...
+
+  await user.save({validateBeforeSave: false})
+
+  // send the msg to user that the password succesfully changed 
+
+  return res
+  .status(200)
+  .json(new ApiError(200, {}, "password changed succesfully"))
+})
+
+// Current User ni tesukovali oka End Point ni create cheyyali 
+
+
+// manam MIDDLEWARE ni pettinamu kabatti andhulo manam user ni mothanni ni 
+
+// req.user loki inject chesinamu 
+
+// If User is LogedIn ayyithe Current user ni return chestha 
+
+
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+  .status(200)
+  .json(200, req.user, "Current User Fetched Succesfuly....")
+})
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const {fullName, email} = req.body
+  
+  // File ni update chesthunnnapudu daniki seperate Controller ni rayali PRODUCTION LEVEL ADVICE 
+
+  if (!fullName || !email) {
+    throw new ApiError(400, "All fields are required... ")
+  }
+
+  // step 1 : Find the user 
+
+  const user = User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName: fullName,
+        email: email,
+      }
+    },  // moonngoDB operater
+    {new: true} // update ayyinaka information return avvuthundhi 
+
+  ).select("-password")
+
+  return res
+  .status(200)
+  .json(new ApiError(200, user, "Account details updated Succesfully..."))
+
+})
+
+// UPDATING THE FILES  
+
+// step1: Multer middleware ni pettali (Files ni acccept cheyyadaniki )
+
+// LoginedIn Ayyina valle Update Cheyyali ( middelware ni create cheyyali )
+
+
+// AVATAR ni Update cheyyali 
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  
+  // multer middleware nuchi req.files vasthaye 
+
+  const avatarLocalPath = req.file?.path
+
+  if (avatarLocalPath) {
+    throw new ApiError(400, "AVATAR file is Missing...")    
+  }
+
+  // CLOUDINARY loki file ni Uplode Cheyyu ....
+
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+  // avatar url ni check cheyyali 
+
+  if (!avatar.url) {
+    throw new ApiError(400, " Error while uploding on AVATAR.... Cloudinary....")
+  }
+
+  // AVATAR NI UPDATE cheyyali 
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url
+      }
+    },
+    {new : true}
+  ).select("-password")
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, user, "AVATAR updated succesfully.... ")
+  )
+
+})
+
+//   COVER IMAGE ni update cheyyali...
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = req.file?.path
+
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, "CoverImage File is Missing...")
+  }
+
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+  if (!coverImage.url) {
+    throw new ApiError(400, "Error while uploding on CoverImage")
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage.url
+      }
+    },
+    {new: true}
+  ).select("-password")
+
+  return res 
+  .status(200)
+  .json(
+    new ApiResponse(200, user, "Cover Image updated Successfully...")
+  )
+
+})
 
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage
 } 
+
+
+
+
+
+
