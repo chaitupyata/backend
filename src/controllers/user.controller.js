@@ -458,9 +458,12 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
   const avatarLocalPath = req.file?.path
 
-  if (avatarLocalPath) {
+  if (!avatarLocalPath) {
     throw new ApiError(400, "AVATAR file is Missing...")    
   }
+
+  // TODO: delete old image - assignment..................
+
 
   // CLOUDINARY loki file ni Uplode Cheyyu ....
 
@@ -525,6 +528,110 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 })
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+
+  const {username} = req.params 
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "username is missing.....");
+  }
+
+  // Username nuchi document ni find cheyyali 
+
+  // $match ni vadali edhi motheam document nuchi kavalsindhi find chesthundhi 
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase()
+      }
+    },
+
+    // channel yokkka subscribers entha no find cheyyali 
+
+    // 1st pipeline Subscriber ni Find cheyyadaniki
+
+    {
+      $lookup: {
+        from: "subscriptions",  // data base lo lowercase and plural avuthundhi 
+        localField: "_id",  
+        foreignField: "channel",  // channel ni select chesthe Subscribers vasthundhi 
+        as: "subscribers"
+      }
+    },
+
+    // Channel enthamadhi ni subcribe chesindhi  
+    // inko pipeline 
+
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo"
+      }
+    },
+
+    // User Model lo inko 2 Fields ni add chesinamu 
+
+    // edhi aditional fields ni add chesthudhi 
+
+    {
+      $addFields: {
+        // fielsd nuchi calculate cheyyali  
+        subscribersCount: {
+          $size: "$subscribers"
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo"
+        },
+// Button ni SUBSCRIBE OR SUBSCRIBED ani ela chupinchale FrontEnd vallaku 
+
+// True & False batti
+        isSubscribed: {
+          $cond: {
+            if: {
+              // medaggaraku vacchina document vundhi kadha andhulo nenu vunnano leno ani 
+              $in: [req.user?._id, "$subscribers.subscriber"]
+            },
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+
+      }
+    }
+  ])
+
+
+  // Console log the channel
+
+  // CHANNEL lo data lekapothe 
+
+
+  if (!channel?.length) {
+    throw new ApiError(404, "channel does not exists.......")
+  }
+
+  return res.status(200)
+  .json(
+    new ApiResponse(200, channel[0], "User channel fetched succesfully...... ")
+  )
+
+})
+
 export {
   registerUser,
   loginUser,
@@ -534,7 +641,8 @@ export {
   changeCurrentPassword,
   updateAccountDetails,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  getUserChannelProfile
 } 
 
 
