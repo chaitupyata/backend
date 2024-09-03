@@ -274,8 +274,8 @@ const registerUser = asyncHandler( async (req, res) => {
       await User.findByIdAndUpdate(
         req.user._id,
         {
-          $set: {
-            refreshToken: undefined
+          $unset: {
+            refreshToken: 1 // this removes the field from document
           }
         },
         {
@@ -344,8 +344,8 @@ const registerUser = asyncHandler( async (req, res) => {
   
     return res
     .status(200)
-    .cookie("accessToken : ", accessToken)
-    .cookie("refreshToken : ", newrefreshToken )
+    .cookie("accessToken : ", accessToken, options)
+    .cookie("refreshToken : ", newrefreshToken, options)
     .json(
       new ApiResponse(
         200,
@@ -426,7 +426,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   // step 1 : Find the user 
 
-  const user = User.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -440,7 +440,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   return res
   .status(200)
-  .json(new ApiError(200, user, "Account details updated Succesfully..."))
+  .json(new ApiResponse(200, user, "Account details updated Succesfully..."))
 
 })
 
